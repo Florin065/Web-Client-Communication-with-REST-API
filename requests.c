@@ -33,7 +33,7 @@ char *compute_get_request(char *host, char *url, char *query_params,
     // Step 3 (optional): add headers and/or cookies, according to the protocol format
 
     if (cookies != NULL) {
-        sprintf(line, "Cookie: %s", cookies);
+        sprintf(line, "Cookie: %s", *cookies);
         compute_message(message, line);
     }
     // Step 4: add final new line
@@ -73,7 +73,7 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     // Step 4 (optional): add cookies
 
     if (cookies != NULL) {
-        sprintf(line, "Cookies: %s", cookies);
+        sprintf(line, "Cookies: %s", *cookies);
         compute_message(message, line); 
     }
 
@@ -88,5 +88,39 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     strcat(message, body_data_buffer);
 
     free(line);
+    return message;
+}
+
+char *compute_delete_request(char *host, char *url, char *query_params,
+                            char **cookies, int cookies_count)
+{
+    char *message = calloc(BUFLEN, sizeof(char));
+    char *line    = calloc(LINELEN, sizeof(char));
+
+    // Step 1: write the method name, URL, request params (if any) and protocol type
+
+    if (query_params != NULL) {
+        sprintf(line, "DELETE %s?%s HTTP/1.1", url, query_params);
+    } else {
+        sprintf(line, "DELETE %s HTTP/1.1", url);
+    }
+
+    compute_message(message, line);
+
+    // Step 2: add the host
+
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
+    // Step 3 (optional): add headers and/or cookies, according to the protocol format
+
+    if (cookies != NULL) {
+        sprintf(line, "Cookie: %s", *cookies);
+        compute_message(message, line);
+    }
+    // Step 4: add final new line
+
+    sprintf(line, "");
+    compute_message(message, "");
     return message;
 }
