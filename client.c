@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include "helpers.h"
 #include "requests.h"
-#include "parson.h"
 
 #define HOST "34.254.242.81"
 #define PORT 8080
@@ -35,7 +34,6 @@ char *buffer;
 bool leave = false;
 bool login = false;
 
-char *cookie;
 char *token;
 
 bool check_num(char *string) {
@@ -48,7 +46,7 @@ bool check_num(char *string) {
     return true;
 }
 
-void json_input_parsing(char *serialized_string) {
+char *json_input_parsing(char *serialized_string) {
     char *username = calloc(BUFFER_SIZE, sizeof(char));
     char *password = calloc(BUFFER_SIZE, sizeof(char));
 
@@ -80,10 +78,7 @@ void json_input_parsing(char *serialized_string) {
 
     serialized_string = json_serialize_to_string_pretty(root_value);
 
-    free(username);
-    free(password);
-
-    json_value_free(root_value);
+    return serialized_string;
 }
 
 void json_add_parsing(char *serialized_string) {
@@ -168,29 +163,39 @@ void json_add_parsing(char *serialized_string) {
 
     serialized_string = json_serialize_to_string_pretty(root_value);
 
-    free(id);
-    free(title);
-    free(author);
-    free(publisher);
-    free(genre);
-    free(page_count);
-
     json_value_free(root_value);
 }
 
 void post_register() {
-    char *serialized_string = NULL;
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    char *serialized_string = calloc(BUFFER_SIZE, sizeof(char));
+
+    printf("salut\n");
+
     json_input_parsing(serialized_string);
 
-    message = compute_post_request(HOST, POST_REGISTER, "application/json", &serialized_string, 0, NULL, 0);
+        printf("salut1\n");
+
+    printf("%s\n", serialized_string);
+        printf("%s\n", serialized_string);
+            printf("%s\n", serialized_string);
+
+    message = compute_post_request(HOST, POST_REGISTER, "application/json", serialized_string, 0, NULL, 0);
+
+            printf("salut1\n");
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
 
     printf("%s\n", response);
+
+    close_connection(sockfd);
 }
 
 void post_login() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
     if (login) {
         printf("You are already logged in\n");
 
@@ -200,7 +205,7 @@ void post_login() {
     char *serialized_string = NULL;
     json_input_parsing(serialized_string);
 
-    message = compute_post_request(HOST, POST_LOGIN, "application/json", &serialized_string, 0, NULL, 0);
+    message = compute_post_request(HOST, POST_LOGIN, "application/json", serialized_string, 0, NULL, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
@@ -212,19 +217,23 @@ void post_login() {
 
     while ((cookies = strtok_r(rest, "\n", &rest))) {
         if (strstr(cookies, "Set-Cookie:")) {
-            cookie = strtok(cookies, ";");
-            cookie = strtok(cookie, ":");
-            cookie = strtok(0, " ");
+            token = strtok(cookies, ";");
+            token = strtok(token, ":");
+            token = strtok(0, " ");
 
             break;
         }
     }
 
     login = true;
+
+    close_connection(sockfd);
 }
 
 void get_access() {
-    message = compute_get_request(HOST, GET_ACCESS, NULL, &cookie, 0);
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_get_request(HOST, GET_ACCESS, NULL, &token, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
@@ -242,18 +251,26 @@ void get_access() {
             break;
         }
     }
+
+    close_connection(sockfd);
 }
 
 void get_books() {
-    message = compute_get_request(HOST, GET_BOOKS, NULL, &cookie, 0);
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_get_request(HOST, GET_BOOKS, NULL, &token, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
 
     printf("%s\n", response);
+
+    close_connection(sockfd);
 }
 
 void get_bookid() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
     id:
     printf("id=");
     char *id = calloc(BUFFER_SIZE, sizeof(char));
@@ -270,19 +287,25 @@ void get_bookid() {
     strcpy(book, GET_BOOKID);
     strcat(book, id);
 
-    message = compute_get_request(HOST, book, NULL, &cookie, 0);
+    message = compute_get_request(HOST, book, NULL, &token, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
 
     printf("%s\n", response);
+
+    free(id);
+
+    close_connection(sockfd);
 }
 
 void post_book() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+    
     char *serialized_string = NULL;
     json_add_parsing(serialized_string);
 
-    message = compute_post_request(HOST, POST_BOOK, "application/json", &serialized_string, 0, &token, 1);
+    message = compute_post_request(HOST, POST_BOOK, "application/json", serialized_string, 0, &token, 1);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
@@ -290,9 +313,13 @@ void post_book() {
     printf("%s\n", response);
 
     free(serialized_string);
+
+    close_connection(sockfd);
 }
 
 void delete_bookid() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
     id:
     printf("id=");
     char *id = calloc(BUFFER_SIZE, sizeof(char));
@@ -309,26 +336,34 @@ void delete_bookid() {
     strcpy(book, DELETE_BOOKID);
     strcat(book, id);
 
-    message = compute_delete_request(HOST, book, NULL, &cookie, 0);
+    message = compute_delete_request(HOST, book, NULL, &token, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
 
     printf("%s\n", response);
+
+    free(id);
+
+    close_connection(sockfd);
 }
 
 void get_logout() {
-    message = compute_get_request(HOST, GET_LOGOUT, NULL, &cookie, 0);
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_get_request(HOST, GET_LOGOUT, NULL, &token, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
 
     printf("%s\n", response);
 
-    cookie = NULL;
+    token = NULL;
     token = NULL;
 
     login = false;
+
+    close_connection(sockfd);
 }
 
 void default_case() {
@@ -340,7 +375,8 @@ void default_case() {
 
 int main(int argc, char *argv[])
 {
-    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+    message = calloc(BUFFER_SIZE, sizeof(char));
+    response = calloc(BUFFER_SIZE, sizeof(char));
 
     while(!leave) {
         buffer = calloc(BUFFER_SIZE, sizeof(char));
@@ -377,9 +413,8 @@ int main(int argc, char *argv[])
             
             break;
         case 'd':
-            if (strncmp(buffer, "delete_book", 11) == 0) {
-                delete_bookid();
-            } else default_case();
+            if (strncmp(buffer, "delete_book", 11) == 0) delete_bookid();
+            else default_case();
 
             break;
         default:
@@ -388,13 +423,11 @@ int main(int argc, char *argv[])
             break;
         }
 
-        close_connection(sockfd);
     }
 
     free(buffer);
     free(message);
     free(response);
-    close_connection(sockfd);
 
     return 0;
 }
