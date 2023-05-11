@@ -6,8 +6,9 @@
 #include <netinet/in.h> /* struct sockaddr_in, struct sockaddr */
 #include <netdb.h>      /* struct hostent, gethostbyname */
 #include <arpa/inet.h>
-#include "helpers.h"
-#include "buffer.h"
+#include <iostream>
+#include "helpers.hpp"
+#include "buffer.hpp"
 
 #define HEADER_TERMINATOR "\r\n\r\n"
 #define HEADER_TERMINATOR_SIZE (sizeof(HEADER_TERMINATOR) - 1)
