@@ -12,13 +12,12 @@
 #include "nlohmann/json.hpp"
 
 char *compute_get_request(char *host, char *url, char *query_params,
-                            std::string *cookies, int cookies_count)
+                            std::string *cookies, size_t cookies_count, char *token)
 {
-    char *message = (char *) calloc(BUFLEN, sizeof(char));
-    char *line    = (char *) calloc(LINELEN, sizeof(char));
+    char *message = new char[BUFLEN];
+    char *line    = new char[LINELEN];
 
-    // Step 1: write the method name, URL, request params (if any) and protocol type
-
+    // write the method name, URL and protocol type
     if (query_params) {
         sprintf(line, "GET %s?%s HTTP/1.1", url, query_params);
     } else {
@@ -27,63 +26,58 @@ char *compute_get_request(char *host, char *url, char *query_params,
 
     compute_message(message, line);
 
-    // Step 2: add the host
-
+    // add the host
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
 
-    // Step 3 (optional): add headers and/or cookies, according to the protocol format
-
+    // add headers and/or cookies, according to the protocol format
     if (cookies) {
-        sprintf(line, "Cookie: %s", *cookies);
+        for (size_t i = 0; i < cookies_count; ++i) {
+            sprintf(line, "Cookie: %s", cookies[i].c_str());
+            compute_message(message, line);
+        }
+    }
+
+    if (token) {
+        sprintf(line, "Authorization: Bearer %s", token);
         compute_message(message, line);
     }
-    // Step 4: add final new line
 
-    sprintf(line, "");
+    // add final new line
     compute_message(message, "");
     return message;
 }
 
-char *compute_post_request(char *host, char *url, char* content_type, nlohmann::json body_data,
-                            int body_data_fields_count, std::string *cookies, int cookies_count)
+char *compute_post_request(char *host, char *url, char *content_type, nlohmann::json body_data, char *token)
 {
     char *message = (char *) calloc(BUFLEN, sizeof(char));
     char *line = (char *) calloc(LINELEN, sizeof(char));
 
-    // Step 1: write the method name, URL and protocol type
-
+    // write the method name, URL and protocol type
     sprintf(line, "POST %s HTTP/1.1", url);
     compute_message(message, line);
-    
-    // Step 2: add the host
 
+    // add the host
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
 
-    /* Step 3: add necessary headers (Content-Type and Content-Length are mandatory)
-            in order to write Content-Length you must first compute the message size
-    */
-
+    // add necessary headers (Content-Type and Content-Length are mandatory)
     sprintf(line, "Content-Type: %s", content_type);
     compute_message(message, line);
 
 	sprintf(line, "Content-Length: %ld", body_data.dump().length());
     compute_message(message, line);
 
-    // Step 4 (optional): add cookies
-
-    if (cookies) {
-        sprintf(line, "Cookies: %s", *cookies);
+    // add token
+    if (token) {
+        sprintf(line, "Authorization: Bearer %s", token);
         compute_message(message, line); 
     }
 
-    // Step 5: add new line at end of header
-
+    // add new line at end of header
     compute_message(message, "");
-
-    // Step 6: add the actual payload data
     
+    // add the actual payload data
     memset(line, 0, LINELEN);
     compute_message(message, body_data.dump().c_str());
 
@@ -91,14 +85,12 @@ char *compute_post_request(char *host, char *url, char* content_type, nlohmann::
     return message;
 }
 
-char *compute_delete_request(char *host, char *url, char *query_params,
-                            std::string *cookies, int cookies_count)
+char *compute_delete_request(char *host, char *url, char *query_params, char *token)
 {
     char *message = (char *) calloc(BUFLEN, sizeof(char));
     char *line    = (char *) calloc(LINELEN, sizeof(char));
 
-    // Step 1: write the method name, URL, request params (if any) and protocol type
-
+    // write the method name, URL and protocol type
     if (query_params) {
         sprintf(line, "DELETE %s?%s HTTP/1.1", url, query_params);
     } else {
@@ -107,20 +99,17 @@ char *compute_delete_request(char *host, char *url, char *query_params,
 
     compute_message(message, line);
 
-    // Step 2: add the host
-
+    // add the host
     sprintf(line, "Host: %s", host);
     compute_message(message, line);
 
-    // Step 3 (optional): add headers and/or cookies, according to the protocol format
-
-    if (cookies) {
-        sprintf(line, "Cookie: %s", *cookies);
+    // add token
+    if (token) {
+        sprintf(line, "Authorization: Bearer %s", token);
         compute_message(message, line);
     }
-    // Step 4: add final new line
 
-    sprintf(line, "");
+    // add final new line
     compute_message(message, "");
     return message;
 }
