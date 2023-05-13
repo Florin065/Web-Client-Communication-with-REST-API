@@ -12,8 +12,8 @@
 #include "requests.hpp"
 #include "nlohmann/json.hpp"
 
-#define HOST "34.254.242.81"
-#define PORT 8080
+#define HOST            "34.254.242.81"
+#define PORT            8080
 
 #define POST_REGISTER   "/api/v1/tema/auth/register"
 #define POST_LOGIN      "/api/v1/tema/auth/login"
@@ -30,7 +30,7 @@ int sockfd;
 
 char *input;
 char *token;
-char *cookies;
+std::string cookies;
 
 // Exit condition
 bool leave = false;
@@ -52,12 +52,13 @@ void post_register() {
         {"password", password}
     };
 
-    message = compute_post_request(HOST, POST_REGISTER, CONTENT_TYPE, j, 0, NULL, 0);
-
     sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_post_request(HOST, POST_REGISTER, CONTENT_TYPE, j, 2, NULL, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
+    puts("\n");
     puts(response);
 
     close_connection(sockfd);
@@ -67,12 +68,25 @@ void post_login() {
     char *username = (char *) calloc(SIZE, sizeof(char));
     char *password = (char *) calloc(SIZE, sizeof(char));
 
-    std::cout << "username : ";
+    user:
+    std::cout << "\nusername : ";
     fgets(username, SIZE, stdin);
-    strtok(username, "\n");
 
+    if (!strncmp(username, "\n", strlen("\n"))) {
+        std::cout << "\nUsername doesn't exist\n";
+        goto user;
+    }
+
+    pass:
     std::cout << "password : ";
     fgets(password, SIZE, stdin);
+
+    if (!strncmp(password, "\n", strlen("\n"))) {
+        std::cout << "\nPassword doesn't match\n";
+        goto pass;
+    }
+
+    strtok(username, "\n");
     strtok(password, "\n");
 
     nlohmann::json j {
@@ -80,15 +94,14 @@ void post_login() {
         {"password", password}
     };
 
-    message = compute_post_request(HOST, POST_LOGIN, CONTENT_TYPE, j, 0, NULL, 0);
-
     sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_post_request(HOST, POST_LOGIN, CONTENT_TYPE, j, 2, NULL, 0);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
+    puts("\n");
     puts(response);
-
-    close_connection(sockfd);
 
     char *str = strstr(response, "Set-Cookie: ");
 
@@ -96,41 +109,165 @@ void post_login() {
         strtok(str, " ;");
         char *dummy = strtok(NULL, " ;");
 
-        cookies = (char *) calloc(SIZE, sizeof(char));
-
-        strcpy(cookies, dummy);
+        cookies = dummy;
     }
+
+    // printf("Cookie : %s\n", cookies.c_str());
+
+    close_connection(sockfd);
 }
 
 void get_access() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_get_request(HOST, GET_ACCESS, NULL, &cookies, 1);
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 
 }
 
 void get_books() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
 
+    message = compute_get_request(HOST, BOOK, NULL, &cookies, 1);
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 }
 
 void get_bookid() {
+    char *id = (char *) calloc(SIZE, sizeof(char));
+
+    std::cout << "id : ";
+    fgets(id, SIZE, stdin);
+    strtok(id, "\n");
+
+    char *book = (char *) calloc(SIZE, sizeof(char));
+    strcpy(book, BOOK);
+    strcat(book, "/");
+    strcat(book, id);
+
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_get_request(HOST, book, NULL, &cookies, 1);
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 
 }
 
 void post_book() {
+    char *id = (char *) calloc(SIZE, sizeof(char));
+    char *title = (char *) calloc(SIZE, sizeof(char));
+    char *author = (char *) calloc(SIZE, sizeof(char));
+    char *publisher = (char *) calloc(SIZE, sizeof(char));
+    char *genre = (char *) calloc(SIZE, sizeof(char));
+    char *page_count = (char *) calloc(SIZE, sizeof(char));
 
+    std::cout << "id : ";
+    fgets(id, SIZE, stdin);
+    strtok(id, "\n");
+
+    std::cout << "title : ";
+    fgets(title, SIZE, stdin);
+    strtok(title, "\n");
+
+    std::cout << "author : ";
+    fgets(author, SIZE, stdin);
+    strtok(author, "\n");
+
+    std::cout << "publisher : ";
+    fgets(publisher, SIZE, stdin);
+    strtok(publisher, "\n");
+
+    std::cout << "genre : ";
+    fgets(genre, SIZE, stdin);
+    strtok(genre, "\n");
+
+    std::cout << "page_count : ";
+    fgets(page_count, SIZE, stdin);
+    strtok(page_count, "\n");
+
+    nlohmann::json j {
+        {"id", id},
+        {"title", title},
+        {"author", author},
+        {"publisher", publisher},
+        {"genre", genre},
+        {"page_count", page_count}
+    };
+
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_post_request(HOST, BOOK, CONTENT_TYPE, j, 6, &cookies, 1);
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 }
 
 void delete_bookid() {
+    char *id = (char *) calloc(SIZE, sizeof(char));
 
+    std::cout << "id : ";
+    fgets(id, SIZE, stdin);
+    strtok(id, "\n");
+
+    char *book = (char *) calloc(SIZE, sizeof(char));
+    strcpy(book, BOOK);
+    strcat(book, "/");
+    strcat(book, id);
+
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
+
+    message = compute_delete_request(HOST, book, NULL, &cookies, 1);
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 }
 
 void get_logout() {
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, 0);
 
+    message = compute_get_request(HOST, GET_LOGOUT, NULL, &cookies, 1);
+
+    cookies.clear();
+    cookies.shrink_to_fit();
+
+    send_to_server(sockfd, message);
+    response = receive_from_server(sockfd);
+    puts("\n");
+    puts(response);
+
+    close_connection(sockfd);
 }
 
 void default_case() {
-    printf("Bad command \"%s\"\n\n", input);
-    printf("Available commands:\n");
-    printf("register\nlogin\nenter_library\nget_books\nget_book\nadd_book\ndelete_book\nlogout\nexit\n");
-    printf("\nPlease enter one of these\n");
+    std::cout << "Bad command \"%s\"\n\n", input;
+    std::cout << "Available commands:\n";
+    std::cout << "register\nlogin\nenter_library\nget_books\nget_book\nadd_book\ndelete_book\nlogout\nexit\n";
+    std::cout << "\nPlease enter one of these\n";
+    std::cout << "---------------------\n";
 }
 
 int main(int argc, char const *argv[])
@@ -147,6 +284,9 @@ int main(int argc, char const *argv[])
             case 'r':
                 if (!strncmp(input, "register", 8)) {
                     post_register();
+
+                    std::cout << "\nYou can now login\n";
+                    std::cout << "---------------------\n";
                 } else {
                     default_case();
                 }
@@ -156,8 +296,14 @@ int main(int argc, char const *argv[])
             case 'l':
                 if (!strncmp(input, "login", 5)) {
                     post_login();
+
+                    std::cout << "\nYou are now logged in\n";
+                    std::cout << "---------------------\n";
                 } else if (!strncmp(input, "logout", 6)) {
                     get_logout();
+
+                    std::cout << "\nYou are now logged out\n";
+                    std::cout << "---------------------\n";
                 } else {
                     default_case();
                 }
@@ -167,8 +313,14 @@ int main(int argc, char const *argv[])
             case 'e':
                 if (!strncmp(input, "enter_library", 13)) {
                     get_access();
+                    std::cout << "\nYou have access to the library\n";
+                    std::cout << "---------------------\n";
                 } else if (!strncmp(input, "exit", 4)) {
                     leave = true;
+                    
+                    std::cout << "\nYou have exited the application\n";
+                    std::cout << "---------------------\n";
+                    std::cout << "Te tzuk, paa!\n";
                 } else {
                     default_case();
                 }
@@ -178,8 +330,14 @@ int main(int argc, char const *argv[])
             case 'g':
                 if (!strncmp(input, "get_books", 9)) {
                     get_books();
+
+                    std::cout << "\nYou have received the information about the books\n";
+                    std::cout << "---------------------\n";
                 } else if (!strncmp(input, "get_book", 8)) {
                     get_bookid();
+
+                    std::cout << "\nYou have received the book\n";
+                    std::cout << "---------------------\n";
                 } else {
                     default_case();
                 }
@@ -189,6 +347,9 @@ int main(int argc, char const *argv[])
             case 'a':
                 if (!strncmp(input, "add_book", 8)) {
                     post_book();
+
+                    std::cout << "\nYou have added a book\n";
+                    std::cout << "---------------------\n";
                 } else {
                     default_case();
                 }
@@ -198,9 +359,13 @@ int main(int argc, char const *argv[])
             case 'd':
                 if (!strncmp(input, "delete_book", 11)) {
                     delete_bookid();
+
+                    std::cout << "\nYou have deleted a book\n";
+                    std::cout << "---------------------\n";
                 } else {
                     default_case();
                 }
+                
                 break;
 
             default:
