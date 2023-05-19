@@ -11,7 +11,7 @@
 #include "requests.hpp"
 #include "nlohmann/json.hpp"
 
-char *compute_get_request(char *host, char *url, char *query_params,
+char *compute_get_request(char *host, const char *url, char *query_params,
                             std::string *cookies, size_t cookies_count, char *token)
 {
     char *message = new char[BUFLEN];
@@ -48,7 +48,7 @@ char *compute_get_request(char *host, char *url, char *query_params,
     return message;
 }
 
-char *compute_post_request(char *host, char *url, char *content_type, nlohmann::json body_data, char *token)
+char *compute_post_request(char *host, const char *url, char *content_type, nlohmann::json body_data, char *token)
 {
     char *message = (char *) calloc(BUFLEN, sizeof(char));
     char *line = (char *) calloc(LINELEN, sizeof(char));
@@ -85,7 +85,7 @@ char *compute_post_request(char *host, char *url, char *content_type, nlohmann::
     return message;
 }
 
-char *compute_delete_request(char *host, char *url, char *query_params, char *token)
+char *compute_delete_request(char *host, const char *url, char *query_params, char *token)
 {
     char *message = (char *) calloc(BUFLEN, sizeof(char));
     char *line    = (char *) calloc(LINELEN, sizeof(char));

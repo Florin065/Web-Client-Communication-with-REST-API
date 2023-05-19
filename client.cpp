@@ -33,7 +33,7 @@
 #define NINE            9
 #define ELEVEN          11
 #define THIRTEEN        13
-#define TWENTY          20
+#define TWENTYTWO       22
 
 char *message;
 char *response;
@@ -50,23 +50,20 @@ size_t save_id;
 bool leave = false;
 
 void post_register() {
-    char *username = (char *) calloc(SIZE, sizeof(char));
-    char *password = (char *) calloc(SIZE, sizeof(char));
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
+
+    std::string username, password;
 
     std::cout << "username : ";
-    fgets(username, SIZE, stdin);
-    strtok(username, "\n");
+    std::getline(std::cin, username);
 
     std::cout << "password : ";
-    fgets(password, SIZE, stdin);
-    strtok(password, "\n");
+    std::getline(std::cin, password);
 
     nlohmann::json j {
         {"username", username},
         {"password", password}
     };
-
-    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
 
     message = compute_post_request(HOST, POST_REGISTER, CONTENT_TYPE, j, NULL);
 
@@ -79,23 +76,30 @@ void post_register() {
 }
 
 void post_login() {
-    char *username = (char *) calloc(SIZE, sizeof(char));
-    char *password = (char *) calloc(SIZE, sizeof(char));
+    if (!cookie.empty()) {
+        cookie.clear();
+        cookie.shrink_to_fit();
+        free(token);
+        token = NULL;
 
-    std::cout << "\nusername : ";
-    fgets(username, SIZE, stdin);
-    strtok(username, "\n");
+        std::cout << "\nYou logged in with another account!\n";
+        std::cout << "---------------------\n\n";
+    }
+
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
+
+    std::string username, password;
+
+    std::cout << "username : ";
+    std::getline(std::cin, username);
 
     std::cout << "password : ";
-    fgets(password, SIZE, stdin);
-    strtok(password, "\n");
+    std::getline(std::cin, password);
 
     nlohmann::json j {
         {"username", username},
         {"password", password}
     };
-
-    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
 
     message = compute_post_request(HOST, POST_LOGIN, CONTENT_TYPE, j, NULL);
 
@@ -112,8 +116,6 @@ void post_login() {
 
         cookie = dummy;
     }
-
-    std::cout << "\nCookie : " << cookie << "\n";
 
     close_connection(sockfd);
 }
@@ -138,8 +140,6 @@ void get_access() {
         strcpy(token, dummy);
     }
 
-    std::cout << "\nToken : " << token << "\n";
-
     close_connection(sockfd);
 }
 
@@ -157,22 +157,18 @@ void get_books() {
 }
 
 void get_bookid() {
-    char *id = (char *) calloc(SIZE, sizeof(char));
-
-    std::cout << "id : ";
-    fgets(id, SIZE, stdin);
-    strtok(id, "\n");
-
-    save_id = atoi(id);
-
-    char *book = (char *) calloc(SIZE, sizeof(char));
-    strcpy(book, BOOK);
-    strcat(book, "/");
-    strcat(book, id);
-
     sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
+    std::string id;
+    std::cout << "id : ";
+    std::getline(std::cin, id);
 
-    message = compute_get_request(HOST, book, NULL, NULL, ZERO, token);
+    save_id = std::stoi(id);
+
+    std::string book = BOOK;
+    book += "/";
+    book += id;
+
+    message = compute_get_request(HOST, book.c_str(), NULL, NULL, ZERO, token);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
@@ -184,33 +180,24 @@ void get_bookid() {
 }
 
 void add_book() {
-    char *title = (char *) calloc(SIZE, sizeof(char));
-    char *author = (char *) calloc(SIZE, sizeof(char));
-    char *genre = (char *) calloc(SIZE, sizeof(char));
-    char *page_count = (char *) calloc(SIZE, sizeof(char));
-    char *publisher = (char *) calloc(SIZE, sizeof(char));
+    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
+
+    std::string title, author, genre, page_count, publisher;
 
     std::cout << "title : ";
-    fgets(title, SIZE, stdin);
-    strtok(title, "\n");
+    std::getline(std::cin, title);
 
     std::cout << "author : ";
-    fgets(author, SIZE, stdin);
-    strtok(author, "\n");
+    std::getline(std::cin, author);
 
     std::cout << "genre : ";
-    fgets(genre, SIZE, stdin);
-    strtok(genre, "\n");
+    std::getline(std::cin, genre);
 
     std::cout << "page_count : ";
-    fgets(page_count, SIZE, stdin);
-    strtok(page_count, "\n");
+    std::getline(std::cin, page_count);
 
     std::cout << "publisher : ";
-    fgets(publisher, SIZE, stdin);
-    strtok(publisher, "\n");
-
-    sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
+    std::getline(std::cin, publisher);
 
     nlohmann::json j {
         {"title", title},
@@ -231,22 +218,19 @@ void add_book() {
 }
 
 void delete_bookid() {
-    char *id = (char *) calloc(SIZE, sizeof(char));
-
-    std::cout << "id : ";
-    fgets(id, SIZE, stdin);
-    strtok(id, "\n");
-
-    save_id = atoi(id);
-
-    char *book = (char *) calloc(SIZE, sizeof(char));
-    strcpy(book, BOOK);
-    strcat(book, "/");
-    strcat(book, id);
-
     sockfd = open_connection(HOST, PORT, AF_INET, SOCK_STREAM, ZERO);
 
-    message = compute_delete_request(HOST, book, NULL, token);
+    std::string id;
+    std::cout << "id : ";
+    std::getline(std::cin, id);
+
+    save_id = std::stoi(id);
+
+    std::string book = BOOK;
+    book += "/";
+    book += id;
+
+    message = compute_delete_request(HOST, book.c_str(), NULL, token);
 
     send_to_server(sockfd, message);
     response = receive_from_server(sockfd);
@@ -263,7 +247,6 @@ void get_logout() {
 
     cookie.clear();
     cookie.shrink_to_fit();
-    
     free(token);
     token = NULL;
 
@@ -289,13 +272,13 @@ int main()
     response = (char *) calloc(SIZE, sizeof(char));
 
     while(!leave) {
-        input = (char*) calloc(SIZE, sizeof(char));
+        input = (char *) calloc(SIZE, sizeof(char));
         fgets(input, SIZE, stdin);
         strtok(input, "\n");
 
         switch (input[0]) {
             case 'r':
-                if (!strncmp(input, "register", EIGHT)) {
+                if (!strncmp(input, "register", EIGHT) && strlen(input) == EIGHT) {
                     post_register();
 
                     char *s = strstr(response, "HTTP/1.1 400 Bad Request");
@@ -314,7 +297,7 @@ int main()
                 break;
 
             case 'l':
-                if (!strncmp(input, "login", FIVE)) {
+                if (!strncmp(input, "login", FIVE) && strlen(input) == FIVE) {
                     post_login();
 
                     if (cookie.size() == ZERO) {
@@ -324,7 +307,7 @@ int main()
                         std::cout << "\nYou are now logged in\n";
                         std::cout << "---------------------\n\n";
                     }
-                } else if (!strncmp(input, "logout", SIX)) {
+                } else if (!strncmp(input, "logout", SIX) && strlen(input) == SIX) {
                     get_logout();
                     
                     char *s = strstr(response, "HTTP/1.1 400 Bad Request");
@@ -343,7 +326,7 @@ int main()
                 break;
 
             case 'e':
-                if (!strncmp(input, "enter_library", THIRTEEN)) {
+                if (!strncmp(input, "enter_library", THIRTEEN) && strlen(input) == THIRTEEN) {
                     get_access();
 
                     char *s = strstr(response, "HTTP/1.1 401 Unauthorized");
@@ -355,7 +338,7 @@ int main()
                         std::cout << "\nYou have entered the library\n";
                         std::cout << "---------------------\n\n";
                     }
-                } else if (!strncmp(input, "exit", FOUR)) {
+                } else if (!strncmp(input, "exit", FOUR) && strlen(input) == FOUR) {
                     leave = true;
                     
                     std::cout << "\nYou have exited the application\n";
@@ -368,7 +351,7 @@ int main()
                 break;
 
             case 'g':
-                if (!strncmp(input, "get_books", NINE)) {
+                if (!strncmp(input, "get_books", NINE) && strlen(input) == NINE) {
                     get_books();
 
                     char *s = strstr(response, "HTTP/1.1 403 Forbidden");
@@ -380,13 +363,17 @@ int main()
                         std::cout << "\nYou have received the books\n";
                         std::cout << "---------------------\n\n";
                     }
-                } else if (!strncmp(input, "get_book", EIGHT)) {
+                } else if (!strncmp(input, "get_book", EIGHT) && strlen(input) == EIGHT) {
                     get_bookid();
 
-                    char *s = strstr(response, "HTTP/1.1 403 Forbidden");
+                    char *s = strstr(response, "HTTP/1.1");
+                    strtok(s, "\n");
 
-                    if (s) {
+                    if (strncmp(s, "HTTP/1.1 403 Forbidden", TWENTYTWO) == ZERO) {
                         std::cout << "\nYou have no access to the library\n";
+                        std::cout << "---------------------\n\n";
+                    } else if (strncmp(s, "HTTP/1.1 404 Not Found", TWENTYTWO) == ZERO) {
+                        std::cout << "\nYou have no book with id " << save_id << "\n";
                         std::cout << "---------------------\n\n";
                     } else {
                         std::cout << "\nYou have received the book with id " << save_id << "\n";
@@ -399,7 +386,7 @@ int main()
                 break;
 
             case 'a':
-                if (!strncmp(input, "add_book", EIGHT)) {
+                if (!strncmp(input, "add_book", EIGHT) && strlen(input) == EIGHT) {
                     add_book();
 
                     char *s = strstr(response, "HTTP/1.1 403 Forbidden");
@@ -418,16 +405,16 @@ int main()
                 break;
 
             case 'd':
-                if (!strncmp(input, "delete_book", ELEVEN)) {
+                if (!strncmp(input, "delete_book", ELEVEN) && strlen(input) == ELEVEN) {
                     delete_bookid();
 
                     char *s = strstr(response, "HTTP/1.1");
                     strtok(s, "\n");
 
-                    if (strncmp(s, "HTTP/1.1 403 Forbidden", TWENTY)) {
+                    if (strncmp(s, "HTTP/1.1 403 Forbidden", TWENTYTWO) == ZERO) {
                         std::cout << "\nYou have no access to the library\n";
                         std::cout << "---------------------\n\n";
-                    } else if (strncmp(s, "HTTP/1.1 404 Not Found", TWENTY)) {
+                    } else if (strncmp(s, "HTTP/1.1 404 Not Found", TWENTYTWO) == ZERO) {
                         std::cout << "\nYou have no book with id " << save_id << "\n";
                         std::cout << "---------------------\n\n";
                     } else {

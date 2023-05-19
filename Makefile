@@ -1,4 +1,4 @@
-CC = g++ -std=c++11 -Wall -Wextra -g
+CC = g++ -std=c++11 -g
 CFLAGS = -c
 
 client: client.o requests.o buffer.o helper.o
